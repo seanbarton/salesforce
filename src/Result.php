@@ -10,7 +10,8 @@ namespace Nexcess\Salesforce;
 
 use Closure,
   IteratorAggregate,
-  Throwable;
+  Throwable,
+  Traversable;
 
 use Nexcess\Salesforce\ {
   Client,
@@ -23,6 +24,9 @@ use Psr\Http\Message\ResponseInterface as Response;
 
 /**
  * Respresents the results of an Api call and maps records to a SaleforceObject class.
+ *
+ * Records (including nested records) are parsed as an appropriate SalesforceObject instance.
+ * Nested results (lists of records) are parsed as Result instances.
  */
 class Result implements IteratorAggregate {
 
@@ -36,8 +40,25 @@ class Result implements IteratorAggregate {
    * @throws ResultException UNPARSABLE_RESPONSE if response body cannot be decoded
    * @return Result The new Result object on success
    */
-  public static function from(Response $response, array $objectMap, Closure $more = null) : Result {
-    return new self($response, $objectMap, $more);
+  public static function fromResponse(Response $response, array $objectMap = [], Closure $more = null) : Result {
+    try {
+      $status = $response->getStatusCode();
+      switch ($status) {
+        case Client::HTTP_CREATED:
+        case Client::HTTP_OK:
+          return new self(
+            json_decode($response->getBody(), true, 512, JSON_THROW_ON_ERROR),
+            $objectMap,
+            $more
+          );
+        case Client::HTTP_NO_CONTENT:
+          return new self([]);
+        default:
+          throw ResultException::create(ResultException::UNEXPECTED_STATUS_CODE, ["status" => $status]);
+      }
+    } catch (Throwable $e) {
+      throw ResultException::create(ResultException::UNPARSABLE_RESPONSE, [], $e);
+    }
   }
 
   /** @var string SalesforceObject classname for this Result. */
@@ -52,30 +73,32 @@ class Result implements IteratorAggregate {
   /** @var SalesforceObject[]|null Cached objects, if any. */
   protected ? array $objects = null;
 
-  /** @var Response The Salesforce Api response. */
-  protected Response $response;
+  /** @var array Map of salesforce type:StorageObject classnames. */
+  protected array $objectMap = [];
 
   /** @var array The parsed Response body. */
   protected array $results;
 
   /**
-   * @param Response $response A Salesforce Api response
+   * @param array $results Parsed Salesforce Api response body
    * @param array $objectMap Map of salesforce type:StorageObject classnames
    * @param Closure|null $more Result ($url, $fqcn) Callback to get more results
    * @throws UsageException BAD_SFO_CLASSNAME if fqcn is not a SalesforceObject classname
    * @throws ResultException UNPARSABLE_RESPONSE if response body cannot be decoded
    */
-  public function __construct(Response $response, array $objectMap, Closure $more = null) {
-    $this->response = $response;
+  public function __construct(array $results, array $objectMap = [], Closure $more = null) {
+    // normalize query vs. get responses
+    $this->results = isset($results["attributes"]) ?
+      ["done" => true, "totalSize" => 1, "records" => [$results]] :
+      $results;
+    $this->objectMap = $objectMap;
     $this->moreResultsCallback = $more;
-    $this->results = $this->parseResponse($this->response);
-
-    // $this->results is typed; if it weren't an array we would have thrown on assignment above
+    // $this->results is typed; if it weren't an array we would have thrown above
     // @phan-suppress-next-line PhanTypeArraySuspiciousNullable
-    $this->fqcn = $objectMap[$this->results['records'][0]['attributes']['type'] ?? null] ??
+    $this->fqcn = $this->objectMap[$this->results["records"][0]["attributes"]["type"] ?? null] ??
       SalesforceObject::class;
     if (! is_a($this->fqcn, SalesforceObject::class, true)) {
-      throw UsageException::create(UsageException::BAD_SFO_CLASSNAME, ['fqcn' => $this->fqcn]);
+      throw UsageException::create(UsageException::BAD_SFO_CLASSNAME, ["fqcn" => $this->fqcn]);
     }
   }
 
@@ -99,7 +122,7 @@ class Result implements IteratorAggregate {
   }
 
   /** {@see https://php.net/IteratorAggregate.getIterator} */
-  public function getIterator() : iterable {
+  public function getIterator() : Traversable {
     yield from isset($this->objects) ?
       $this->objects :
       $this->parseObjects();
@@ -116,7 +139,7 @@ class Result implements IteratorAggregate {
    * @return string|null 18-character Salesforce Id, if exists
    */
   public function lastId() : ? string {
-    return $this->results['id'] ?? null;
+    return $this->results["id"] ?? null;
   }
 
   /**
@@ -125,31 +148,56 @@ class Result implements IteratorAggregate {
    * @return Result|null The next Result object, if any
    */
   public function more() : ? Result {
-    if (! isset($this->moreResultsCallback, $this->results['nextRecordsUrl'])) {
-      return null;
+    if (! isset($this->moreResults)) {
+      if (isset($this->moreResultsCallback, $this->results["nextRecordsUrl"])) {
+        $this->moreResults = ($this->moreResultsCallback)($this->results["nextRecordsUrl"], $this->fqcn);
+      }
     }
 
-    $this->moreResults = ($this->moreResultsCallback)($this->results['nextRecordsUrl'], $this->fqcn);
     return $this->moreResults;
   }
 
   /**
+   * Returns all results as an array.
+   * Use with caution if your result set is big.
+   *
+   * @return SalesforceObject[] Result Id:SalesforceObject map
+   */
+  public function toArray() : array {
+    return iterator_to_array($this);
+  }
+
+  /**
    * Lazily builds salesforce objects from the result.
-   * Caches for future use.
+   *
+   * Caches for future use - but only if all are parsed successfully
+   *  (e.g., if iteration is interrupted, we don't want to end up with a partial cache).
    *
    * @throws ResultException UNPARSABLE on failure
    * @return iterable<SalesforceObject> List of objects in the result
    */
   protected function parseObjects() : iterable {
-    $fqcn = $this->fqcn;
-
     try {
       $objects = [];
-      foreach ($this->results['records'] ?? [] as $record) {
-        $object = $fqcn::createFromRecord($record);
+      foreach ($this->results["records"] ?? [] as $record) {
+        foreach ($record as $property => $value) {
+          // nested result (object list)
+          if (isset($value["records"])) {
+            $record[$property] = new self($value, $this->objectMap, $this->moreResultsCallback);
+            continue;
+          }
+
+          // nested object
+          if (isset($value["attributes"])) {
+            $record[$property] = (new self($value, $this->objectMap, $this->moreResultsCallback))
+              ->first();
+          }
+        }
+        $object = ($this->fqcn)::fromRecord($record);
         $objects[$object->Id] = $object;
 
-        yield $object;
+        // don't send the original - we don't want external code to modify our cache
+        yield $object->Id => clone $object;
         $object = null;
       }
 
@@ -157,39 +205,11 @@ class Result implements IteratorAggregate {
     } catch (Throwable $e) {
       throw ResultException::create(
         ResultException::UNPARSABLE_RECORD,
-        ['record' => $record ?? null, 'fqcn' => $fqcn, 'object' => $object ?? null],
+        // if we looped, there's a $record; if we didn't loop, nothing will have thrown
+        // @phan-suppress-next-line PhanPossiblyUndeclaredVariable
+        ["record" => $record, "fqcn" => $this->fqcn, "object" => $object ?? null],
         $e
       );
-    }
-  }
-
-  /**
-   * Parses the Api Response and returns a normalized array of results.
-   *
-   * @param Response $response The Api Response to parse
-   * @throws ResultException UNPARSABLE_RESPONSE if response body cannot be decoded
-   * @return array Normalized response data
-   */
-  protected function parseResponse(Response $response) : array {
-    try {
-      $status = $response->getStatusCode();
-      switch ($status) {
-        case Client::HTTP_CREATED:
-        case Client::HTTP_OK:
-          $results = json_decode($response->getBody(), true, 512, JSON_THROW_ON_ERROR);
-
-          // normalize query/get
-          if (isset($results['attributes'])) {
-            return ['done' => true, 'totalSize' => 1, 'records' => [$results]];
-          }
-          return $results;
-        case Client::HTTP_NO_CONTENT:
-          return [];
-        default:
-          throw ResultException::create(ResultException::UNEXPECTED_STATUS_CODE, ['status' => $status]);
-      }
-    } catch (Throwable $e) {
-      throw ResultException::create(ResultException::UNPARSABLE_RESPONSE, [], $e);
     }
   }
 }

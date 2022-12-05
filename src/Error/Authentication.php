@@ -18,7 +18,7 @@ class Authentication extends RuntimeException implements Error {
   public const NOT_AUTHENTICATED = 2;
 
   public const INFO = [
-    self::FAILED => ['message' => 'authentication failed'],
-    self::NOT_AUTHENTICATED => ['message' => 'not yet authenticated']
+    self::FAILED => ["message" => "authentication failed"],
+    self::NOT_AUTHENTICATED => ["message" => "not yet authenticated"]
   ];
 }

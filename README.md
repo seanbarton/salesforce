@@ -40,7 +40,7 @@ _Check [Salesforce's Help Docs](https://help.salesforce.com/s/articleView?id=sf.
 Creating a new Api client and connecting:
 ```php
 use Nexcess\Salesforce\ {
-  Authentication\Password,
+  Authenticator\Password,
   Client
 };
 
@@ -112,13 +112,14 @@ var_dump($ded->Id);
 
 ## Advanced Usage
 
-### Salesforce Object Classes
+### Extending the SalesforceObject Class
 
 The included `Nexcess\Salesforce\SaleforceObject` class can be used without modification as a generic "salesforce record" implementation - it will automatically set properties based on what's fetched from the Api. However, the intent is that applications will extend from it and define the properties needed for each of their Salesforce objects. This allows for a consistent schema that your code can rely on, and even lets you implement some level of validation directly in your application.
 
 To build your own Salesforce Object, you must:
 - extend from `Nexcess\Salesforce\SalesforceObject`
 - define the object fields as public properties
+- list any properties that must not be included in update() calls (e.g., renamed fields, nested objects or object lists) in UNEDITABLE_FIELDS.
 - add any necessary logic in `setField()` (e.g., building a new object if your record has a relation)
 - add any desired logic in `validateField()`
 
@@ -128,8 +129,51 @@ use Nexcess\Salesforce\SalesforceObject;
 
 class Example extends SalesforceObject {
 
+    public const TYPE = "Example";
+
     public ? string $Name = null;
 }
+```
+
+### Inline Records and Record Lists
+
+SOQL allows queries for nested objects and queries, which appear in results as inline records and query results respectively. This library does understand results from such queries, but your SalesforceObject subclasses must define properties in a particular way to support them.
+
+For example, a query similar to `SELECT Manager.Id, Manager.Name, (SELECT Id, Name FROM Members) FROM Teams` would require a SalesforceObject class like so:
+```php
+use Nexcess\Salesforce\ {
+    Result,
+    SalesforceObject
+};
+use Example;
+
+class Team extends SalesforceObject {
+
+    public const TYPE = "Team";
+
+    protected const UNEDITABLE_FIELDS = [
+        "Manager",
+        "Members",
+        ...parent::UNEDITABLE_FIELDS
+    ];
+
+    public ? Example $Manager = null;
+    public ? Result $Members = null;
+}
+```
+
+Where there is an inline object, the property should be typed as the corresponding SalesforceObject subclass. For any record type where you're not making a SalesforceObject subclass, type the property as `SalesforceObject` — though this is obviously less useful.
+
+Where there is a subquery, the property should be typed as a `Result` instance. Among other things, this allows the Result to support paginated subqueries.
+
+### Object Mapping
+
+Finally, to allow the Api Client take advantage of your subclasses, you must provide an `$objectMap` so it knows which PHP classes correspond to which Salesforce record types. Without this, you'll end up with generic SalesfoceObject instances for everything. Nested Results will be provided the same `$objectMap` as their parent Result instance.
+```php
+$salesforce = new Client(
+    $password->authenticate([...$credentials]),
+    [Example::TYPE => Example::class, Team::TYPE => Team::class]
+);
 ```
 
 ### Field Validation

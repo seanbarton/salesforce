@@ -19,43 +19,52 @@ use Nexcess\Salesforce\ {
  * Represents a generic Salesforce object (record).
  *
  * This class should be extended for each particular record type used by your application.
+ *
  * Define the fields your applications needs as public properties.
+ * Define any field(s) that must not be included in update() calls
+ *  (e.g., renamed fields, nested objects or object lists)
+ *  in UNEDITABLE_FIELDS.
  */
 class SalesforceObject {
 
+  /** @var string|null Salesforce record type this class requires. */
+  public const TYPE = null;
+
   /** @var string[] Field names Salesforce doesn't let you edit. */
   protected const UNEDITABLE_FIELDS = [
-    'Id',
-    'LastModifiedDate',
-    'IsDeleted',
-    'CreatedById',
-    'CreatedDate',
-    'LastModifiedById',
-    'SystemModstamp'
+    "Id",
+    "LastModifiedDate",
+    "IsDeleted",
+    "CreatedById",
+    "CreatedDate",
+    "LastModifiedById",
+    "SystemModstamp"
   ];
 
   /**
    * Factory: builds a new SalesforceObject given a raw record.
    *
+   * If your subclass requires special record processing, you should extend this method.
+   *
    * @param array $record A record from a Salesforce Api response
    * @throws ResultException NO_TYPE if type is missing from record
    * @return SalesforceObject A new object on success
    */
-  public static function createFromRecord(array $record) : SalesforceObject {
-    $type = $record['attributes']['type'] ?? null;
+  public static function fromRecord(array $record) : SalesforceObject {
+    $type = $record["attributes"]["type"] ?? null;
     if (empty($type)) {
-      throw ResultException::create(ResultException::NO_TYPE, ['record_id' => $record['Id'] ?? null]);
+      throw ResultException::create(ResultException::NO_TYPE, ["record_id" => $record["Id"] ?? null]);
     }
 
-    $metadata = $record['attributes'] + [
-      'CreatedById' => $record['CreatedById'] ?? null,
-      'CreatedDate' => $record['CreatedDate'] ?? null,
-      'SystemModstamp' => $record['SystemModstamp'] ?? null,
-      'LastModifiedDate' => $record['LastModifiedDate'] ?? null,
-      'LastModifiedById' => $record['LastModifiedById'] ?? null,
-      'IsDeleted' => $record['IsDeleted'] ?? null
+    $metadata = $record["attributes"] + [
+      "CreatedById" => $record["CreatedById"] ?? null,
+      "CreatedDate" => $record["CreatedDate"] ?? null,
+      "SystemModstamp" => $record["SystemModstamp"] ?? null,
+      "LastModifiedDate" => $record["LastModifiedDate"] ?? null,
+      "LastModifiedById" => $record["LastModifiedById"] ?? null,
+      "IsDeleted" => $record["IsDeleted"] ?? null
     ];
-    unset($record['attributes']);
+    unset($record["attributes"]);
 
     $object = new static($type, $record);
     $object->setMetadata($metadata);
@@ -76,15 +85,24 @@ class SalesforceObject {
   protected array $fields;
 
   /**
+   * The constructor is not intended for direct use in code, and should not be overridden in subclasses.
+   * Use/extend static::fromRecord() or other factory instead.
+   *
    * @param string $type Object type
    * @param array $fields Map of object field names:values
    */
   public function __construct(string $type, array $fields) {
     $this->type = $type;
+    if (! empty(static::TYPE) && $this->type !== static::TYPE) {
+      throw UsageException::create(
+        UsageException::BAD_RECORD_TYPE,
+        ["type" => static::TYPE, "record_type" => $this->type]
+      );
+    }
 
     // prefer defined object properties; fall back on provided field names
     $this->fields = array_keys(_getObjectFields($this));
-    if (empty($this->fields) || $this->fields === ['Id']) {
+    if (empty($this->fields) || $this->fields === ["Id"]) {
       array_push($this->fields, ...array_keys($fields));
     }
 
@@ -104,7 +122,7 @@ class SalesforceObject {
 
     throw UsageException::create(
       UsageException::NO_SUCH_FIELD,
-      ['type' => $this->type, 'field' => $field]
+      ["type" => $this->type, "field" => $field]
     );
   }
 
@@ -123,14 +141,14 @@ class SalesforceObject {
    */
   public function getMetadata() : array {
     return $this->metadata + [
-      'type' => null,
-      'url' => null,
-      'CreatedById' => null,
-      'CreatedDate' => null,
-      'SystemModstamp' => null,
-      'LastModifiedDate' => null,
-      'LastModifiedById' => null,
-      'IsDeleted' => null
+      "type" => null,
+      "url" => null,
+      "CreatedById" => null,
+      "CreatedDate" => null,
+      "SystemModstamp" => null,
+      "LastModifiedDate" => null,
+      "LastModifiedById" => null,
+      "IsDeleted" => null
     ];
   }
 
@@ -153,13 +171,13 @@ class SalesforceObject {
   /**
    * Gets the object's fields as an array.
    *
-   * @param bool $for_edit Exclude fields which are unset or not editable?
+   * @param bool $forEdit Exclude fields which are unset or not editable?
    * @return array Map of object field names:values
    */
-  public function toArray(bool $for_edit = true) : array {
+  public function toArray(bool $forEdit = true) : array {
     $map = [];
     foreach ($this->fields as $field) {
-      if ($for_edit && (! isset($this->$field) || in_array($field, self::UNEDITABLE_FIELDS))) {
+      if ($forEdit && (! isset($this->$field) || in_array($field, self::UNEDITABLE_FIELDS))) {
         continue;
       }
       $map[$field] = $this->$field ?? null;
@@ -176,6 +194,22 @@ class SalesforceObject {
   }
 
   /**
+   * Validates object fields,  e.g., before object creation or update.
+   *
+   * @param bool $forEdit Exclude fields which are unset or not editable?
+   * @throws ValidationException If validation fails
+   */
+  public function validate(bool $forEdit = true) : void {
+    foreach ($this->fields as $field) {
+      if ($forEdit && (! isset($this->$field) || in_array($field, self::UNEDITABLE_FIELDS))) {
+        continue;
+      }
+
+      $this->validateField($field);
+    }
+  }
+
+  /**
    * Sets metadata about this object's record in Salesforce.
    *
    * @param array $metadata Metadata to set
@@ -185,8 +219,9 @@ class SalesforceObject {
   }
 
   /**
-   * Checks that the object is in a valid state, e.g., before object creation or update.
+   * Validates an object field value.
    *
+   * By default, only validates the 18-character Salesforce Id.
    * Extend this method to implement validation for particular Salesforce objects.
    *
    * @param string $field Object field name
@@ -194,7 +229,7 @@ class SalesforceObject {
    */
   protected function validateField(string $field) : void {
     switch ($field) {
-      case 'Id':
+      case "Id":
         if (isset($this->Id)) {
           Validator::Id($this->Id);
         }
