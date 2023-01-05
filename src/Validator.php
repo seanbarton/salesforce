@@ -29,17 +29,17 @@ class Validator {
    * @throws ValidationException BAD_ID if validation fails
    */
   public static function byteLength(string $value, ? int $minimum, ? int $maximum) : void {
-    $byte_length = strlen($value);
+    $byteLength = strlen($value);
     if (
-      ($minimum === null || $byte_length >= $minimum) &&
-      ($maximum === null || $byte_length <= $maximum)
+      ($minimum === null || $byteLength >= $minimum) &&
+      ($maximum === null || $byteLength <= $maximum)
     ) {
       return;
     }
 
     throw ValidationException::create(
       ValidationException::BAD_BYTE_LENGTH,
-      ['value' => $value, 'length' => $byte_length, 'minimum' => $minimum, 'maximum' => $maximum]
+      ["value" => $value, "length" => $byteLength, "minimum" => $minimum, "maximum" => $maximum]
     );
   }
 
@@ -50,17 +50,17 @@ class Validator {
    * @throws ValidationException BAD_CHARACTER_LENGTH if validation fails
    */
   public static function characterLength(string $value, ? int $minimum, ? int $maximum) : void {
-    $character_length = mb_strlen($value);
+    $characterLength = mb_strlen($value);
     if (
-      ($minimum === null || $character_length >= $minimum) &&
-      ($maximum === null || $character_length <= $maximum)
+      ($minimum === null || $characterLength >= $minimum) &&
+      ($maximum === null || $characterLength <= $maximum)
     ) {
       return;
     }
 
     throw ValidationException::create(
       ValidationException::BAD_CHARACTER_LENGTH,
-      ['value' => $value, 'length' => $character_length, 'minimum' => $minimum, 'maximum' => $maximum]
+      ["value" => $value, "length" => $characterLength, "minimum" => $minimum, "maximum" => $maximum]
     );
   }
 
@@ -68,17 +68,17 @@ class Validator {
    * Validates a value as one of an enumerated set.
    *
    * @param string $value
-   * @param string[] $valid_values
+   * @param string[] $validValues
    * @throws ValidationException BAD_ENUM_VALUE if validation fails
    */
-  public static function enum(string $value, array $valid_values) : void {
-    if (in_array($value, $valid_values)) {
+  public static function enum(string $value, array $validValues) : void {
+    if (in_array($value, $validValues)) {
       return;
     }
 
     throw ValidationException::create(
       ValidationException::BAD_ENUM_VALUE,
-      ['value' => $value, 'valid_values' => join('|', $valid_values)]
+      ["value" => $value, "valid_values" => join("|", $validValues)]
     );
   }
 
@@ -89,10 +89,18 @@ class Validator {
    * @throws ValidationException BAD_ID if validation fails
    */
   public static function Id(string $value) : void {
-    if (preg_match('(^[a-z0-9]{18}$)i', $value)) {
+    if (preg_match("(^[a-z0-9]{18}$)i", $value)) {
       return;
     }
 
-    throw ValidationException::create(ValidationException::BAD_ID, ['value' => $value]);
+    throw ValidationException::create(ValidationException::BAD_ID, ["value" => $value]);
+  }
+
+  public static function notNull($value) : void {
+    if (isset($value)) {
+      return;
+    }
+
+    throw ValidationException::create(ValidationException::VALUE_REQUIRED);
   }
 }

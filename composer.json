@@ -1,7 +1,7 @@
 {
   "name": "nexcess/php-salesforce-rest-api",
   "description": "Salesforce API Client based on bjsmasth/php-salesforce-rest-api",
-  "version": "51.0",
+  "version": "56.0",
   "license": "MIT",
   "keywords": [
     "bjsmasth",
@@ -20,9 +20,9 @@
     }
   ],
   "require": {
-    "php": "^7.4|^8",
-    "guzzlehttp/guzzle": "^6.2|^7",
-    "php-enspired/exceptable": "^3.2"
+    "php": "^7.4 || ^8",
+    "guzzlehttp/guzzle": "^6.2 || ^7",
+    "php-enspired/exceptable": "^4"
   },
   "require-dev": {
     "phan/phan": "^5",

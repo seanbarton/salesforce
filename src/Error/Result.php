@@ -24,17 +24,17 @@ class Result extends RuntimeException implements Error {
 
   public const INFO = [
     self::UNPARSABLE_RESPONSE => [
-      'message' => 'error parsing Salesforce Api response body',
-      'format' => 'error parsing Salesforce Api response body: {__rootMessage__}'
+      "message" => "error parsing Salesforce Api response body",
+      "format" => "error parsing Salesforce Api response body: {__rootMessage__}"
     ],
     self::UNPARSABLE_RECORD => [
-      'message' => 'error parsing Salesforce Api resultset',
-      'format' => 'error parsing Salesforce Api resultset as {fqcn}: {__rootMessage__}'
+      "message" => "error parsing Salesforce Api resultset",
+      "format" => "error parsing Salesforce Api resultset as {fqcn}: {__rootMessage__}"
     ],
-    self::NO_TYPE => ['message' => 'no type specified in record attributes'],
+    self::NO_TYPE => ["message" => "no type specified in record attributes"],
     self::UNEXPECTED_STATUS_CODE => [
-      'message' => 'unexpected http response status code',
-      'format' => 'unexpected http response status code: {status}'
+      "message" => "unexpected http response status code",
+      "format" => "unexpected http response status code: {status}"
     ]
   ];
 }

@@ -26,28 +26,28 @@ class Salesforce extends RuntimeException implements Error {
 
   public const INFO = [
     self::CREATE_FAILED => [
-      'message' => 'failed to create record',
-      'format' => 'failed to create record: [{status}] {reason} {sf_error_code} {sf_error_message}'
+      "message" => "failed to create record",
+      "format" => "failed to create record: [{status}] {reason} {sf_error_code} {sf_error_message}"
     ],
     self::DELETE_FAILED => [
-      'message' => 'failed to delete record',
-      'format' => 'failed to delete record: [{status}] {reason} {sf_error_code} {sf_error_message}'
+      "message" => "failed to delete record",
+      "format" => "failed to delete record: [{status}] {reason} {sf_error_code} {sf_error_message}"
     ],
     self::GET_FAILED => [
-      'message' => 'failed to get record',
-      'format' => 'failed to get record: [{status}] {reason} {sf_error_code} {sf_error_message}'
+      "message" => "failed to get record",
+      "format" => "failed to get record: [{status}] {reason} {sf_error_code} {sf_error_message}"
     ],
     self::UPDATE_FAILED => [
-      'message' => 'failed to update record',
-      'format' => 'failed to update record: [{status}] {reason} {sf_error_code} {sf_error_message}'
+      "message" => "failed to update record",
+      "format" => "failed to update record: [{status}] {reason} {sf_error_code} {sf_error_message}"
     ],
     self::UPSERT_FAILED => [
-      'message' => 'failed to upsert record',
-      'format' => 'failed to upsert record: [{status}] {reason} {sf_error_code} {sf_error_message}'
+      "message" => "failed to upsert record",
+      "format" => "failed to upsert record: [{status}] {reason} {sf_error_code} {sf_error_message}"
     ],
     self::HTTP_REQUEST_FAILED => [
-      'message' => 'http request failed',
-      'format' => 'http request failed ({method} {$path}): {__rootMessage__}'
+      "message" => "http request failed",
+      "format" => "http request failed ({method} {path}): {__rootMessage__}"
     ]
   ];
 }
