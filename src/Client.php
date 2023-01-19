@@ -340,22 +340,22 @@ class Client {
   /**
    * Quotes and interpolates parameter values into an SOQL template.
    *
+   * Note, SOQL statements are expected to be a single line,
+   *  so newlines in the template will be removed.
+   * If you need a newline (e.g., in a string value), you should pass it as a parameter.
+   *
    * @param string $template SOQL template with value {tokens}
    * @param array $parameters Parameter token:value map
    * @throws UsageException On error
    * @return string Interpolated SOQL on success
    */
   protected function prepare(string $template, array $parameters) : string {
-    if (! empty($parameters)) {
-      $replacements = [];
-      foreach ($parameters as $field => $value) {
-        $replacements["{{$field}}"] = $this->quote($value);
-      }
-
-      $template = strtr($template, $replacements);
+    $replacements = ["\n" => ""];
+    foreach ($parameters as $field => $value) {
+      $replacements["{{$field}}"] = $this->quote($value);
     }
 
-    return $template;
+    return strtr($template, $replacements);
   }
 
   /**
@@ -377,7 +377,7 @@ class Client {
           );
         }
 
-        return "\"" . strtr($value, self::ESCAPE_MAP) . "\"";
+        return "'" . strtr($value, self::ESCAPE_MAP) . "'";
       case self::TYPE_INTEGER:
         $integer = filter_var($value, FILTER_VALIDATE_INT);
         if ($integer === false) {
