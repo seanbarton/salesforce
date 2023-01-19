@@ -139,6 +139,12 @@ class QueryTest extends SalesforceApiTestCase {
         ["name" => "O'Brien\n\r\t\x07\f\"\\"],
         "SELECT Id, Name FROM Example WHERE Name!='O\'Brien\\n\\r\\t\\b\\f\\\"\\\\' LIMIT 100",
         $response
+      ],
+      "multiline query" => [
+        "SELECT Id, Name\n FROM Example\n WHERE Name='Bob'\n LIMIT 100",
+        [],
+        "SELECT Id, Name FROM Example WHERE Name='Bob' LIMIT 100",
+        $response
       ]
     ];
   }
