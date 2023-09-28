@@ -1,12 +1,11 @@
 {
     "type": "library",
     "license": "Apache-2.0",
-    "name": "lyonstahl/salesforce-api",
+    "name": "lyonstahl/salesforce",
     "description": "A library that provides a simple and intuitive way to interact with Salesforce API",
     "keywords": [
         "sapi",
         "salesforce",
-        "salesforce-api",
         "rest",
         "api"
     ],
