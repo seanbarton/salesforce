@@ -4,7 +4,7 @@
 
 Ensure you have [composer](http://getcomposer.org) installed, then run the following command:
 
-    composer require lyonstahl/salesforce-api
+    composer require lyonstahl/salesforce
 
 That will fetch the library and its dependencies inside your vendor folder.
 
@@ -246,8 +246,8 @@ Exceptions are grouped into the following types:
 
 We have included a Dockerfile to make it easy to run the tests and debug the code. You must have Docker installed. The following commands will build the image and run the container:
 
-1. `docker build -t lyonstahl/salesforce-api --build-arg PHP_VERSION=8 .`
-2. `docker run -it --rm -v ${PWD}:/var/www/sapi lyonstahl/salesforce-api sh`
+1. `docker build -t lyonstahl/salesforce --build-arg PHP_VERSION=8 .`
+2. `docker run -it --rm -v ${PWD}:/var/www/sapi lyonstahl/salesforce sh`
 
 ## Debugging with XDebug in VSCode
 
@@ -266,7 +266,7 @@ Docker image is configured with XDebug. To debug the code with VSCode, follow th
             }
         }
 
-3.  `docker run -it --rm -v ${PWD}:/var/www/sapi --add-host host.docker.internal:host-gateway lyonstahl/salesforce-api sh`
+3.  `docker run -it --rm -v ${PWD}:/var/www/sapi --add-host host.docker.internal:host-gateway lyonstahl/salesforce sh`
 4.  Start debugging in VSCode with the 'XDebug Docker' configuration.
 
 ## Testing
