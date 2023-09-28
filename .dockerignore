@@ -1,0 +1,9 @@
+*.md
+/_*
+/.*.meta.*
+/.*.cache
+/.editorconfig
+.git*
+/vendor/
+/Dockerfile
+/.dockerignore

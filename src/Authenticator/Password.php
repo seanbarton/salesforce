@@ -1,106 +1,110 @@
 <?php
-/**
- * @package Nexcess/Salesforce
- * @author Nexcess.net <nocworx@nexcess.net>
- * @copyright 2021 LiquidWeb Inc.
- * @license MIT
- */
 
-namespace Nexcess\Salesforce\Authenticator;
+declare(strict_types=1);
 
-use Nexcess\Salesforce\ {
-  Authenticator\Authenticator,
-  Error\Authentication as AuthenticationException
-};
+namespace LyonStahl\Salesforce\Authenticator;
 
-use GuzzleHttp\Client as HttpClient;
+use GuzzleHttp\Client as GuzzleClient;
+use LyonStahl\Salesforce\Exceptions\AuthException;
 
-/**
- * Password-based Salesforce Authenticator.
- */
-class Password implements Authenticator {
+class Password implements Authenticator
+{
+    /** @var string[] */
+    protected const REQUIRED_PARAMS = ['client_id', 'client_secret', 'username', 'password'];
 
-  /** @var array Default Http Client options. */
-  protected const DEFAULT_OPTIONS = [
-    "base_uri" => self::DEFAULT_LOGIN_ENDPOINT,
-    "http_errors" => false
-  ];
+    /** @var string */
+    protected $endpoint = 'https://login.salesforce.com/';
 
-  /** @var string Default login endpoint. */
-  protected const DEFAULT_LOGIN_ENDPOINT = "https://login.salesforce.com";
+    /** @var string */
+    protected $path = '/services/oauth2/token';
 
-  /** @var array Map of Http Client options. */
-  protected array $options;
+    /** @var string[] */
+    protected $options;
 
-  /**
-   * {@inheritDoc}
-   */
-  public static function create(array $options = self::DEFAULT_OPTIONS) : Authenticator {
-    return new self($options);
-  }
-
-  /**
-   * @param array $options Map of Http Client options - @see HttpClient::__construct($options)
-   *  If you pass a base_uri, it should be your Salesforce login endpoint, and not include a trailing slash.
-   */
-  public function __construct(array $options = []) {
-    $this->options = $options + ["base_uri" => self::DEFAULT_LOGIN_ENDPOINT];
-  }
-
-  /**
-   * {@inheritDoc}
-   *
-   * This method does not validate or process provided options.
-   * Expected Authenticator parameters:
-   *  - string "client_id"
-   *  - string "client_secret"
-   *  - string "username"
-   *  - string "password"
-   */
-  public function authenticate(array $parameters) : HttpClient {
-    $response = $this->httpClient()
-      ->post("/services/oauth2/token", ["form_params" => ["grant_type" => "password"] + $parameters]);
-
-    $auth = json_decode($response->getBody());
-    if (! isset($auth->access_token, $auth->instance_url)) {
-      throw AuthenticationException::create(
-        AuthenticationException::FAILED,
-        ["response" => $response, "parameters" => $this->obfuscate($parameters)]
-      );
+    /**
+     * Creates a new Password Authenticator.
+     *
+     * @param string[] $options Guzzle Client options
+     */
+    public static function create(array $options = []): self
+    {
+        return new self($options);
     }
 
-    return $this->httpClient($auth->instance_url, $auth->access_token);
-  }
+    /**
+     * @param string[] $options Guzzle Client options
+     */
+    public function __construct(array $options = [])
+    {
+        // Allow overriding the default endpoint
+        if (isset($options['endpoint'])) {
+            $this->endpoint = $options['endpoint'];
+            unset($options['endpoint']);
+        }
 
-  /**
-   * Builds a new Http client using this Authenticator
-   *
-   * @throws AuthenticationException NOT_AUTHENTICATED if Authenticator has not yet succeeded
-   */
-  protected function httpClient(string $baseUri = null, string $accessToken = null) : HttpClient {
-    $options = ["base_uri" => $baseUri ?? $this->options["base_uri"]] + $this->options;
-    if (! empty($accessToken)) {
-      $options["headers"]["Authorization"] = "OAuth {$accessToken}";
+        $defaults = [
+            'base_uri' => $this->endpoint,
+            'headers' => [
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/x-www-form-urlencoded',
+            ],
+            'http_errors' => false,
+        ];
+
+        $this->options = array_replace_recursive($defaults, $options);
     }
 
-    return new HttpClient($options);
-  }
+    /**
+     * @param string[] $parameters Guzzle Client options
+     */
+    public function authenticate(array $parameters): GuzzleClient
+    {
+        $missing = array_diff(self::REQUIRED_PARAMS, array_keys($parameters));
+        if (!empty($missing)) {
+            throw AuthException::create(AuthException::MISSING, ['parameters' => $this->obfuscate($missing)]);
+        }
 
-  /**
-   * Obfuscates (e.g., for logging) Authenticator parameters.
-   *
-   * The "client_secret" and "password", if present,
-   *  are hashed and can be compared to expected values using password_verify().
-   *
-   * @param string[] $parameters The Authenticator parameters to obfuscate
-   */
-  protected function obfuscate(array $parameters) : array {
-    foreach (["client_secret", "password"] as $key) {
-      if (isset($parameters[$key])) {
-        $parameters[$key] = password_hash($parameters[$key], PASSWORD_DEFAULT);
-      }
+        $response = $this->httpClient()->post($this->path, ['form_params' => ['grant_type' => 'password', ...$parameters]]);
+
+        $auth = json_decode((string) $response->getBody());
+        if (!isset($auth->access_token, $auth->instance_url)) {
+            throw AuthException::create(AuthException::FAILED, ['response' => $response, 'parameters' => $this->obfuscate($parameters)]);
+        }
+
+        return $this->httpClient($auth->instance_url, $auth->access_token);
     }
 
-    return $parameters;
-  }
+    /**
+     * Builds a new Http client using this Authenticator.
+     *
+     * @throws AuthException NOT_AUTHENTICATED if Authenticator has not yet succeeded
+     */
+    protected function httpClient(string $baseUri = null, string $accessToken = null): GuzzleClient
+    {
+        $options = $baseUri ? [...$this->options, $baseUri] : $this->options;
+        if (!empty($accessToken)) {
+            $options['headers']['Authorization'] = "OAuth {$accessToken}";
+        }
+
+        return new GuzzleClient($options);
+    }
+
+    /**
+     * Obfuscates (e.g., for logging) Authenticator parameters.
+     *
+     * The "client_secret" and "password", if present,
+     *  are hashed and can be compared to expected values using password_verify().
+     *
+     * @param string[] $parameters The Authenticator parameters to obfuscate
+     */
+    protected function obfuscate(array $parameters): array
+    {
+        foreach (['client_secret', 'password'] as $key) {
+            if (isset($parameters[$key])) {
+                $parameters[$key] = password_hash($parameters[$key], PASSWORD_DEFAULT);
+            }
+        }
+
+        return $parameters;
+    }
 }

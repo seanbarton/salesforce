@@ -1,2 +1,22 @@
-vendor/
-composer.lock
+# IDE
+/.idea
+/.vscode
+/.*.meta.*
+
+# Composer
+/vendor/
+
+# Caches
+/*.cache
+
+# Environment
+.env
+.env*local*
+!.env*.example
+
+# Misc
+*.log
+*.out
+
+# Packagist
+/composer.lock
