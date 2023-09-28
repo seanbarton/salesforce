@@ -1,20 +1,29 @@
-# Salesforce Rest Api Client
-
-A basic Salesforce Api client for PHP, based on [bjsmasth/php-salesforce-rest-api](https://github.com/bjsmasth/php-salesforce-rest-api).
-
-Supports basic Api methods, SOQL query templating, and mapping of Salesforce records to PHP objects.
-
-## Requirements
-
-Requires php 7.4, or php 8.
+# Salesforce REST API Client
 
 ## Installation
 
-Install using [composer](https://getcomposer.org): `composer require nexcess/salesforce`
+Ensure you have [composer](http://getcomposer.org) installed, then run the following command:
 
-## Getting Started
+    composer require lyonstahl/salesforce-api
 
-### Setting up a Connected App
+That will fetch the library and its dependencies inside your vendor folder.
+
+If you want a simple API for bulding SOQL queries, we suggest [lyonstahl/soql-builder](https://github.com/lyonstahl/soql-builder)
+
+## Requirements
+
+-   [PHP 7.3+](https://www.php.net)
+-   [Composer 2.0+](https://getcomposer.org)
+
+## Features
+
+-   OAuth with password grant type
+-   Create, update, delete, upsert, and query records
+-   Object representation of Salesforce records with LyonStahl\Salesforce\Record
+-   Field validation and object mapping
+-   Extendable code: add custom objects or validation rules
+
+## Setting up a Connected App
 
 Before you begin, you need to have set up a "Connected App" in Salesforce and get a `consumerKey`, `consumerSecret`, `username`, and `password` to allow Api access.
 
@@ -35,31 +44,30 @@ _Check [Salesforce's Help Docs](https://help.salesforce.com/s/articleView?id=sf.
     - Select Access Scope (If you need a refresh token, specify it here)
 6. Click Save, and store your access credentials in a safe place.
 
-### Basic Usage
+## Usage
 
 Creating a new Api client and connecting:
-```php
-use Nexcess\Salesforce\ {
-  Authenticator\Password,
-  Client
-};
 
-// if you need to use a different login endpoint than the default `login.salesforce.com`
-//  (e.g., for a sandbox installation during development),
-//  include it here with your credentials using the "endpoint" key.
-$salesforce = new Client(
-    (new Password())->authenticate([
-        "client_id" => $YOUR_CONSUMER_KEY,
-        "client_secret" => $YOUR_CONSUMER_SECRET,
-        "username" => $YOUR_SALESFORCE_USERNAME,
-        "password" => $YOUR_SALESFORCE_PASSWORD_AND_SECURITY_TOKEN
-    ])
-);
+```php
+use LyonStahl\Salesforce\Authenticator\Password;
+use LyonStahl\Salesforce\Client;
+
+// Provide endpoint and any Guzzle options in Password::create(), endoint defaults to login.salesforce.com
+$auth = Password::create(['endpoint' => 'https://test.salesforce.com/'])->authenticate([
+    "client_id" => $YOUR_CONSUMER_KEY,
+    "client_secret" => $YOUR_CONSUMER_SECRET,
+    "username" => $YOUR_SALESFORCE_USERNAME,
+    "password" => $YOUR_SALESFORCE_PASSWORD_AND_SECURITY_TOKEN
+]);
+
+// Here you may also provide object mappings and desired Salesforce API version
+$salesforce = new Client($auth, [], 59);
 ```
 
 The following examples use a Salesforce object named `Example` that has a field `Name`.
 
 Executing Basic SOQL Queries:
+
 ```php
 $select = "SELECT Id, Name FROM Example LIMIT 100";
 foreach ($salesforce->query($select) as $object) {
@@ -69,6 +77,7 @@ foreach ($salesforce->query($select) as $object) {
 ```
 
 If you need to use php values in your query, put `{tokens}` in your SOQL and pass the values separately via `query()`'s second argument. The values will be properly quoted and escaped based on their type, and interpolated into the query:
+
 ```php
 $select = "SELECT Id, Name FROM Example WHERE Name={name} LIMIT 100";
 $name = 'Bob';
@@ -79,6 +88,7 @@ foreach ($salesforce->query($select, ['name' => $name]) as $object) {
 ```
 
 Fetching a Record by Id:
+
 ```php
 $id = "5003000000D8cuIQAA";
 $bob = $salesforce->get("Example", $id);
@@ -87,15 +97,17 @@ echo "Hello, {$bob->Name}\n";
 ```
 
 Creating a new Record:
-```php
-use Nexcess\Salesforce\SalesforceObject;
 
-$linda = $salesforce->create(new SalesforceObject("Example", ["Name" => "Linda"]));
+```php
+use LyonStahl\Salesforce\Record;
+
+$linda = $salesforce->create(new Record("Example", ["Name" => "Linda"]));
 echo "Example {$linda->Id} ({$linda->Name})";
 // outputs something like "Example 5003000000D8cuIQAA (Linda)"
 ```
 
 Updating an existing Record:
+
 ```php
 $bob->Name = "Roberto";
 $roberto = $salesforce->update($bob);
@@ -104,6 +116,7 @@ echo "Hello, {$roberto->Name}\n";
 ```
 
 Deleting a Record:
+
 ```php
 $ded = $salesforce->delete($bob);
 var_dump($ded->Id);
@@ -112,43 +125,44 @@ var_dump($ded->Id);
 
 ## Advanced Usage
 
-### Extending the SalesforceObject Class
+### Extending the Record class
 
-The included `Nexcess\Salesforce\SaleforceObject` class can be used without modification as a generic "salesforce record" implementation - it will automatically set properties based on what's fetched from the Api. However, the intent is that applications will extend from it and define the properties needed for each of their Salesforce objects. This allows for a consistent schema that your code can rely on, and even lets you implement some level of validation directly in your application.
+The included `LyonStahl\Salesforce\Record` class can be used without modification as a generic "salesforce record" implementation - it will automatically set properties based on what's fetched from the Api. However, the intent is that applications will extend from it and define the properties needed for each of their Salesforce objects. This allows for a consistent schema that your code can rely on, and even lets you implement some level of validation directly in your application.
 
 To build your own Salesforce Object, you must:
-- extend from `Nexcess\Salesforce\SalesforceObject`
-- define the object fields as public properties
-- list any properties that must not be included in update() calls (e.g., renamed fields, nested objects or object lists) in UNEDITABLE_FIELDS.
-- add any necessary logic in `setField()` (e.g., building a new object if your record has a relation)
-- add any desired logic in `validateField()`
+
+-   extend from `LyonStahl\Salesforce\Record`
+-   define the object fields as public properties
+-   list any properties that must not be included in update() calls (e.g., renamed fields, nested objects or object lists) in UNEDITABLE_FIELDS.
+-   add any necessary logic in `setField()` (e.g., building a new object if your record has a relation)
+-   add any desired logic in `validateField()`
 
 Using our "Example" object from above,
+
 ```php
-use Nexcess\Salesforce\SalesforceObject;
+use LyonStahl\Salesforce\Record;
 
-class Example extends SalesforceObject {
-
+class Example extends Record
+{
     public const TYPE = "Example";
 
-    public ? string $Name = null;
+    public ?string $Name = null;
 }
 ```
 
 ### Inline Records and Record Lists
 
-SOQL allows queries for nested objects and queries, which appear in results as inline records and query results respectively. This library does understand results from such queries, but your SalesforceObject subclasses must define properties in a particular way to support them.
+SOQL allows queries for nested objects and queries, which appear in results as inline records and query results respectively. This library does understand results from such queries, but your Record subclasses must define properties in a particular way to support them.
 
-For example, a query similar to `SELECT Manager.Id, Manager.Name, (SELECT Id, Name FROM Members) FROM Teams` would require a SalesforceObject class like so:
+For example, a query similar to `SELECT Manager.Id, Manager.Name, (SELECT Id, Name FROM Members) FROM Teams` would require a Record class like so:
+
 ```php
-use Nexcess\Salesforce\ {
-    Result,
-    SalesforceObject
-};
+use LyonStahl\Salesforce\Record;
+use LyonStahl\Salesforce\Result;
 use Example;
 
-class Team extends SalesforceObject {
-
+class Team extends Record
+{
     public const TYPE = "Team";
 
     protected const UNEDITABLE_FIELDS = [
@@ -157,18 +171,19 @@ class Team extends SalesforceObject {
         ...parent::UNEDITABLE_FIELDS
     ];
 
-    public ? Example $Manager = null;
-    public ? Result $Members = null;
+    public ?Example $Manager = null;
+    public ?Result $Members = null;
 }
 ```
 
-Where there is an inline object, the property should be typed as the corresponding SalesforceObject subclass. For any record type where you're not making a SalesforceObject subclass, type the property as `SalesforceObject` — though this is obviously less useful.
+Where there is an inline object, the property should be typed as the corresponding Record subclass. For any record type where you're not making a Record subclass, type the property as `Record` — though this is obviously less useful.
 
 Where there is a subquery, the property should be typed as a `Result` instance. Among other things, this allows the Result to support paginated subqueries.
 
 ### Object Mapping
 
-Finally, to allow the Api Client take advantage of your subclasses, you must provide an `$objectMap` so it knows which PHP classes correspond to which Salesforce record types. Without this, you'll end up with generic SalesfoceObject instances for everything. Nested Results will be provided the same `$objectMap` as their parent Result instance.
+Finally, to allow the Api Client take advantage of your subclasses, you must provide an `$objectMap` so it knows which PHP classes correspond to which Salesforce record types. Without this, you'll end up with generic Record instances for everything. Nested Results will be provided the same `$objectMap` as their parent Result instance.
+
 ```php
 $salesforce = new Client(
     $password->authenticate([...$credentials]),
@@ -178,16 +193,15 @@ $salesforce = new Client(
 
 ### Field Validation
 
-Some basic validation functions are included in `Nexcess\Salesforce\Validator`. These methods all take the value to validate as the first argument, and can have other arguments depending on needs. Follow this same pattern to implement additional validation functions for your own objects as needed.
+Some basic validation functions are included in `LyonStahl\Salesforce\Validator`. These methods all take the value to validate as the first argument, and can have other arguments depending on needs. Follow this same pattern to implement additional validation functions for your own objects as needed.
+
 ```php
-use Nexcess\Salesforce\ {
-    SalesforceObject,
-    Validator
-};
+use LyonStahl\Salesforce\Record;
+use LyonStahl\Salesforce\Validator;
 
-class Example extends SalesforceObject {
-
-    public ? string $Name = null;
+class Example extends Record
+{
+    public ?string $Name = null;
 
     protected function validateField(string $field) : void {
         switch ($field) {
@@ -204,33 +218,59 @@ class Example extends SalesforceObject {
 
 ### Handling Errors
 
-All Runtime Exceptions thrown from this library will be an instance of `Nexcess\Salesforce\Error`.
+All Runtime Exceptions thrown from this library will be an instance of `LyonStahl\Salesforce\Error`.
 
 Exceptions are grouped into the following types:
-- `Nexcess\Salesforce\Error\Salesforce`:
+
+-   `LyonStahl\Salesforce\Exceptions\SalesforceException`:
 
     Errors originating from the Salesforce API, including HTTP errors (e.g., connection timeouts)
-- `Nexcess\Salesforce\Error\Authentication`:
+
+-   `LyonStahl\Salesforce\Exceptions\AuthException`:
 
     Authentication failures or attempts to use the HttpClient before authentication has succeeded
-- `Nexcess\Salesforce\Error\Result`:
 
-    Errors parsing or handling Salesforce Api results or records; these will usually indicate a problem in your custom SalesforceObject classes
-- `Nexcess\Salesforce\Error\Usage`:
+-   `LyonStahl\Salesforce\Exceptions\ResultException`:
+
+    Errors parsing or handling Salesforce Api results or records; these will usually indicate a problem in your custom Record classes
+
+-   `LyonStahl\Salesforce\Exceptions\UsageException`:
 
     Errors arising from incorrect library usage; these will usually indicate a runtime problem in your application code
-- `Nexcess\Salesforce\Error\Validation`:
+
+-   `LyonStahl\Salesforce\Exceptions\ValidationException`:
 
     Validation errors.
 
-## Support and Contributing
+## Running for development with Docker
 
-Unfortunately, we currently don't offer official usage support for this library.
+We have included a Dockerfile to make it easy to run the tests and debug the code. You must have Docker installed. The following commands will build the image and run the container:
 
-If you have found a bug or have a feature request, please [open an issue](https://github.com/nexcess/php-salesforce-rest-api/issues). Pull Requests are welcome as well!
+1. `docker build -t lyonstahl/salesforce-api --build-arg PHP_VERSION=8 .`
+2. `docker run -it --rm -v ${PWD}:/var/www/sapi lyonstahl/salesforce-api sh`
 
-## Tests
+## Debugging with XDebug in VSCode
 
-Run phpunit tests with `composer test:unit`
+Docker image is configured with XDebug. To debug the code with VSCode, follow these steps:
 
-Run static analysis with `composer test:phan`
+1.  Install the [PHP Debug extension](https://marketplace.visualstudio.com/items?itemName=xdebug.php-debug) in VSCode
+2.  Add a new PHP Debug configuration in VSCode:
+
+        {
+            "name": "XDebug Docker",
+            "type": "php",
+            "request": "launch",
+            "port": 9003,
+            "pathMappings": {
+                "/var/www/sapi/": "${workspaceRoot}/"
+            }
+        }
+
+3.  `docker run -it --rm -v ${PWD}:/var/www/sapi --add-host host.docker.internal:host-gateway lyonstahl/salesforce-api sh`
+4.  Start debugging in VSCode with the 'XDebug Docker' configuration.
+
+## Testing
+
+This library ships with PHPUnit for development. Composer file has been configured with some scripts, run the following command to run the tests:
+
+    composer test

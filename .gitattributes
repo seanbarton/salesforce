@@ -1,0 +1,15 @@
+* text=auto
+* eol=lf
+*.php diff=php
+
+# Exclude files from package dist
+/tests                  export-ignore
+/tools                  export-ignore
+/tools/*                binary
+/.editorconfig          export-ignore
+/.gitattributes         export-ignore
+/.gitignore             export-ignore
+/.dockerignore          export-ignore
+/.php-cs-fixer.dist.php export-ignore
+/Dockerfile             export-ignore
+/phpunit.xml            export-ignore

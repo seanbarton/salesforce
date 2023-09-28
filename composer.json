@@ -1,41 +1,42 @@
 {
-  "name": "nexcess/php-salesforce-rest-api",
-  "description": "Salesforce API Client based on bjsmasth/php-salesforce-rest-api",
-  "version": "56.0",
-  "license": "MIT",
-  "keywords": [
-    "bjsmasth",
-    "nexcess",
-    "salesforce",
-    "php salesforce",
-    "php salesforce rest",
-    "php salesforce rest api",
-    "php"
-  ],
-  "authors": [
-    {
-      "name": "Nexcess.net (a Liquid Web brand)",
-      "email": "nocworx@nexcess.net",
-      "homepage": "https://github.com/nexcess"
+    "type": "library",
+    "license": "Apache-2.0",
+    "name": "lyonstahl/salesforce-api",
+    "description": "A library that provides a simple and intuitive way to interact with Salesforce API",
+    "keywords": [
+        "sapi",
+        "salesforce",
+        "salesforce-api",
+        "rest",
+        "api"
+    ],
+    "minimum-stability": "RC",
+    "prefer-stable": true,
+    "require": {
+        "php": ">=7.3",
+        "guzzlehttp/guzzle": "^7.8"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "LyonStahl\\Salesforce\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests"
+        }
+    },
+    "scripts": {
+        "test": [
+            "phpunit"
+        ]
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true
     }
-  ],
-  "require": {
-    "php": "^7.4 || ^8",
-    "guzzlehttp/guzzle": "^6.2 || ^7",
-    "php-enspired/exceptable": "^4"
-  },
-  "require-dev": {
-    "phan/phan": "^5",
-    "phpunit/phpunit": "^9"
-  },
-  "autoload": {
-    "psr-4": {
-      "Nexcess\\Salesforce\\": "src/",
-      "Nexcess\\Salesforce\\Test\\": "tests/"
-    }
-  },
-  "scripts": {
-    "test:phan": "vendor/bin/phan",
-    "test:unit": "vendor/bin/phpunit"
-  }
 }
