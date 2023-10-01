@@ -31,7 +31,7 @@ class Client
     public const TYPE_NULL = 'NULL';
 
     /** @var string Target Salesforce API version */
-    protected $apiVersion = 'v51.0';
+    protected $apiVersion = 'v59.0';
 
     /** @var string Base path for Salesforce API requests */
     protected $apiPath;
@@ -72,7 +72,7 @@ class Client
      * @param string[]   $objectMap  Map of salesforce object type:fully qualified classnames
      * @param string     $apiVersion Target Salesforce API version
      */
-    public function __construct(HttpClient $httpClient, array $objectMap = [], int $apiVersion = 51)
+    public function __construct(HttpClient $httpClient, array $objectMap = [], int $apiVersion = 59)
     {
         $this->httpClient = $httpClient;
         $this->mapObjects($objectMap);
