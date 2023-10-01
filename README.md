@@ -4,11 +4,9 @@
 
 Ensure you have [composer](http://getcomposer.org) installed, then run the following command:
 
-    composer require lyonstahl/salesforce
+    composer require seanbarton/salesforce
 
 That will fetch the library and its dependencies inside your vendor folder.
-
-If you want a simple API for bulding SOQL queries, we suggest [lyonstahl/soql-builder](https://github.com/lyonstahl/soql-builder)
 
 ## Requirements
 
@@ -19,7 +17,7 @@ If you want a simple API for bulding SOQL queries, we suggest [lyonstahl/soql-bu
 
 -   OAuth with password grant type
 -   Create, update, delete, upsert, and query records
--   Object representation of Salesforce records with LyonStahl\Salesforce\Record
+-   Object representation of Salesforce records with seanbarton\Salesforce\Record
 -   Field validation and object mapping
 -   Extendable code: add custom objects or validation rules
 
@@ -49,8 +47,8 @@ _Check [Salesforce's Help Docs](https://help.salesforce.com/s/articleView?id=sf.
 Creating a new Api client and connecting:
 
 ```php
-use LyonStahl\Salesforce\Authenticator\Password;
-use LyonStahl\Salesforce\Client;
+use seanbarton\Salesforce\Authenticator\Password;
+use seanbarton\Salesforce\Client;
 
 // Provide endpoint and any Guzzle options in Password::create(), endoint defaults to login.salesforce.com
 $auth = Password::create(['endpoint' => 'https://test.salesforce.com/'])->authenticate([
@@ -99,7 +97,7 @@ echo "Hello, {$bob->Name}\n";
 Creating a new Record:
 
 ```php
-use LyonStahl\Salesforce\Record;
+use seanbarton\Salesforce\Record;
 
 $linda = $salesforce->create(new Record("Example", ["Name" => "Linda"]));
 echo "Example {$linda->Id} ({$linda->Name})";
@@ -127,11 +125,11 @@ var_dump($ded->Id);
 
 ### Extending the Record class
 
-The included `LyonStahl\Salesforce\Record` class can be used without modification as a generic "salesforce record" implementation - it will automatically set properties based on what's fetched from the Api. However, the intent is that applications will extend from it and define the properties needed for each of their Salesforce objects. This allows for a consistent schema that your code can rely on, and even lets you implement some level of validation directly in your application.
+The included `seanbarton\Salesforce\Record` class can be used without modification as a generic "salesforce record" implementation - it will automatically set properties based on what's fetched from the Api. However, the intent is that applications will extend from it and define the properties needed for each of their Salesforce objects. This allows for a consistent schema that your code can rely on, and even lets you implement some level of validation directly in your application.
 
 To build your own Salesforce Object, you must:
 
--   extend from `LyonStahl\Salesforce\Record`
+-   extend from `seanbarton\Salesforce\Record`
 -   define the object fields as public properties
 -   list any properties that must not be included in update() calls (e.g., renamed fields, nested objects or object lists) in UNEDITABLE_FIELDS.
 -   add any necessary logic in `setField()` (e.g., building a new object if your record has a relation)
@@ -140,7 +138,7 @@ To build your own Salesforce Object, you must:
 Using our "Example" object from above,
 
 ```php
-use LyonStahl\Salesforce\Record;
+use seanbarton\Salesforce\Record;
 
 class Example extends Record
 {
@@ -157,8 +155,8 @@ SOQL allows queries for nested objects and queries, which appear in results as i
 For example, a query similar to `SELECT Manager.Id, Manager.Name, (SELECT Id, Name FROM Members) FROM Teams` would require a Record class like so:
 
 ```php
-use LyonStahl\Salesforce\Record;
-use LyonStahl\Salesforce\Result;
+use seanbarton\Salesforce\Record;
+use seanbarton\Salesforce\Result;
 use Example;
 
 class Team extends Record
@@ -193,11 +191,11 @@ $salesforce = new Client(
 
 ### Field Validation
 
-Some basic validation functions are included in `LyonStahl\Salesforce\Validator`. These methods all take the value to validate as the first argument, and can have other arguments depending on needs. Follow this same pattern to implement additional validation functions for your own objects as needed.
+Some basic validation functions are included in `seanbarton\Salesforce\Validator`. These methods all take the value to validate as the first argument, and can have other arguments depending on needs. Follow this same pattern to implement additional validation functions for your own objects as needed.
 
 ```php
-use LyonStahl\Salesforce\Record;
-use LyonStahl\Salesforce\Validator;
+use seanbarton\Salesforce\Record;
+use seanbarton\Salesforce\Validator;
 
 class Example extends Record
 {
@@ -218,27 +216,27 @@ class Example extends Record
 
 ### Handling Errors
 
-All Runtime Exceptions thrown from this library will be an instance of `LyonStahl\Salesforce\Error`.
+All Runtime Exceptions thrown from this library will be an instance of `seanbarton\Salesforce\Error`.
 
 Exceptions are grouped into the following types:
 
--   `LyonStahl\Salesforce\Exceptions\SalesforceException`:
+-   `seanbarton\Salesforce\Exceptions\SalesforceException`:
 
     Errors originating from the Salesforce API, including HTTP errors (e.g., connection timeouts)
 
--   `LyonStahl\Salesforce\Exceptions\AuthException`:
+-   `seanbarton\Salesforce\Exceptions\AuthException`:
 
     Authentication failures or attempts to use the HttpClient before authentication has succeeded
 
--   `LyonStahl\Salesforce\Exceptions\ResultException`:
+-   `seanbarton\Salesforce\Exceptions\ResultException`:
 
     Errors parsing or handling Salesforce Api results or records; these will usually indicate a problem in your custom Record classes
 
--   `LyonStahl\Salesforce\Exceptions\UsageException`:
+-   `seanbarton\Salesforce\Exceptions\UsageException`:
 
     Errors arising from incorrect library usage; these will usually indicate a runtime problem in your application code
 
--   `LyonStahl\Salesforce\Exceptions\ValidationException`:
+-   `seanbarton\Salesforce\Exceptions\ValidationException`:
 
     Validation errors.
 
@@ -246,8 +244,8 @@ Exceptions are grouped into the following types:
 
 We have included a Dockerfile to make it easy to run the tests and debug the code. You must have Docker installed. The following commands will build the image and run the container:
 
-1. `docker build -t lyonstahl/salesforce --build-arg PHP_VERSION=8 .`
-2. `docker run -it --rm -v ${PWD}:/var/www/sapi lyonstahl/salesforce sh`
+1. `docker build -t seanbarton/salesforce --build-arg PHP_VERSION=8 .`
+2. `docker run -it --rm -v ${PWD}:/var/www/sapi seanbarton/salesforce sh`
 
 ## Debugging with XDebug in VSCode
 
@@ -266,7 +264,7 @@ Docker image is configured with XDebug. To debug the code with VSCode, follow th
             }
         }
 
-3.  `docker run -it --rm -v ${PWD}:/var/www/sapi --add-host host.docker.internal:host-gateway lyonstahl/salesforce sh`
+3.  `docker run -it --rm -v ${PWD}:/var/www/sapi --add-host host.docker.internal:host-gateway seanbarton/salesforce sh`
 4.  Start debugging in VSCode with the 'XDebug Docker' configuration.
 
 ## Testing
