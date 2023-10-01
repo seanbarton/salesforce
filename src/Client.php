@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace LyonStahl\Salesforce;
+namespace seanbarton\Salesforce;
 
 use GuzzleHttp\Client as HttpClient;
-use LyonStahl\Salesforce\Exceptions\SalesforceException;
-use LyonStahl\Salesforce\Exceptions\UsageException;
+use seanbarton\Salesforce\Exceptions\SalesforceException;
+use seanbarton\Salesforce\Exceptions\UsageException;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\StreamInterface as Stream;
 
