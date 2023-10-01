@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace LyonStahl\Salesforce;
+namespace seanbarton\Salesforce;
 
-use LyonStahl\Salesforce\Exceptions\ResultException;
-use LyonStahl\Salesforce\Exceptions\UsageException;
-use LyonStahl\Salesforce\Exceptions\ValidationException;
+use seanbarton\Salesforce\Exceptions\ResultException;
+use seanbarton\Salesforce\Exceptions\UsageException;
+use seanbarton\Salesforce\Exceptions\ValidationException;
 
 /**
  * Represents a generic Salesforce object.
