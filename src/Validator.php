@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace LyonStahl\Salesforce;
+namespace seanbarton\Salesforce;
 
-use LyonStahl\Salesforce\Exceptions\ValidationException;
+use seanbarton\Salesforce\Exceptions\ValidationException;
 
 /**
  * Validation utility methods.
