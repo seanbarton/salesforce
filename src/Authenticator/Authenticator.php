@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace LyonStahl\Salesforce\Authenticator;
+namespace seanbarton\Salesforce\Authenticator;
 
 use GuzzleHttp\Client as GuzzleClient;
-use LyonStahl\Salesforce\Exceptions\AuthException;
+use seanbarton\Salesforce\Exceptions\AuthException;
 
 /**
  * Handles Authenticating an HTTP Client with Salesforce.

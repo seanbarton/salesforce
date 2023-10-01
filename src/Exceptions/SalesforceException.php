@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace LyonStahl\Salesforce\Exceptions;
+namespace seanbarton\Salesforce\Exceptions;
 
 class SalesforceException extends Exception
 {
