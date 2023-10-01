@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Tests;
 
 use GuzzleHttp\Client as GuzzleClient;
-use LyonStahl\Salesforce\Authenticator\Password;
-use LyonStahl\Salesforce\Exceptions\AuthException;
+use seanbarton\Salesforce\Authenticator\Password;
+use seanbarton\Salesforce\Exceptions\AuthException;
 use PHPUnit\Framework\TestCase;
 
 class PasswordTest extends TestCase
