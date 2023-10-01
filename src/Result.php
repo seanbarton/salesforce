@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace LyonStahl\Salesforce;
+namespace seanbarton\Salesforce;
 
-use LyonStahl\Salesforce\Exceptions\ResultException;
-use LyonStahl\Salesforce\Exceptions\UsageException;
+use seanbarton\Salesforce\Exceptions\ResultException;
+use seanbarton\Salesforce\Exceptions\UsageException;
 use Psr\Http\Message\ResponseInterface as Response;
 
 /**
