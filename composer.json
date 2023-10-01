@@ -1,7 +1,7 @@
 {
     "type": "library",
     "license": "Apache-2.0",
-    "name": "lyonstahl/salesforce",
+    "name": "seanbarton/salesforce",
     "description": "A library that provides a simple and intuitive way to interact with Salesforce API",
     "keywords": [
         "sapi",
@@ -20,7 +20,7 @@
     },
     "autoload": {
         "psr-4": {
-            "LyonStahl\\Salesforce\\": "src"
+            "seanbarton\\Salesforce\\": "src"
         }
     },
     "autoload-dev": {
